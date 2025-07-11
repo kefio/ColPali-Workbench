@@ -2,7 +2,21 @@
 
 ## Overview
 
-**Colpali Workbench** is an integrated system designed to facilitate efficient document indexing, querying, and management using ColPali. It leverages multi-vector retrieval through late interaction mechanisms.
+**Colpali Workbench** is an integrated system designed to facilitate efficient document indexing, querying, and management using **ColPali** (Faysse et al., 2024), a groundbreaking Vision Language Model specifically designed for document retrieval. 
+
+### About ColPali
+
+ColPali represents a paradigm shift in document retrieval by leveraging **Vision Language Models (VLMs)** to construct multi-vector embeddings directly from document images, eliminating the need for complex OCR and layout recognition pipelines. Based on the research paper ["ColPali: Efficient Document Retrieval with Vision Language Models"](https://arxiv.org/abs/2407.01449) (accepted at **ICLR 2025**), this approach treats document pages as images and processes them through a **PaliGemma-3B** backbone with **ColBERT-style late interaction mechanisms**.
+
+**Key innovations:**
+- **Visual-first approach**: Processes document page images directly, capturing both textual content and visual elements (tables, charts, layout, fonts)
+- **Multi-vector embeddings**: Generates 1024 patch embeddings (128-dimensional each) per page using Vision Transformer architecture
+- **Late interaction**: Employs ColBERT methodology for efficient query-document matching through MaxSim operations
+- **State-of-the-art performance**: Outperforms traditional text-based retrieval systems on the **ViDoRe benchmark** by significant margins
+
+**Research background**: Developed through collaboration between *CentraleSupélec*, *Illuin Technology*, *Equall.ai*, and *ETH Zürich*, ColPali addresses the inherent limitations of traditional RAG systems that struggle with visually rich documents. The model was trained on 127,460 query-page pairs and demonstrates superior performance across multiple domains and languages.
+
+This workbench implements the complete ColPali pipeline, providing a production-ready solution for organizations seeking to leverage cutting-edge document retrieval technology.
 
 ## Table of Contents
 
@@ -79,6 +93,7 @@ Follow these steps to set up the Colpali Workbench system:
     VESPA_TENANT_NAME=your-tenant-name
     VESPA_APP_NAME=your-app-name
     TOGETHER_API_KEY=your-together-api-key
+    HUGGINGFACE_TOKEN=hf_your_huggingface_token_here
     ```
 
     You can leave the following environment variables with these values:
@@ -91,7 +106,25 @@ Follow these steps to set up the Colpali Workbench system:
     CACHE_QUERY_RESPONSE_FILE_NAME=query_last_response.json
     ```
 
-2. **Build and Deploy Components**
+2. **Security Best Practices for Tokens**
+
+    ⚠️ **IMPORTANTE - Gestione Sicura dei Token:**
+    
+    - **MAI inserire token/segreti direttamente nel codice sorgente**
+    - **USA sempre variabili d'ambiente** per gestire token sensibili
+    - **Aggiungi `.env` al `.gitignore`** per evitare commit accidentali
+    - **Per produzione, usa servizi di gestione segreti** come Google Secret Manager
+    
+    **Esempio di gestione sicura per il token Hugging Face:**
+    ```bash
+    # Crea un file .env nella directory del progetto (NON committare questo file!)
+    echo "HUGGINGFACE_TOKEN=hf_your_actual_token_here" > .env
+    
+    # Avvia Docker con le variabili d'ambiente
+    docker run -e HUGGINGFACE_TOKEN=$HUGGINGFACE_TOKEN your_image
+    ```
+
+3. **Build and Deploy Components**
 
     Use Docker Compose to build and run all components simultaneously.
 
@@ -163,14 +196,21 @@ This phase retrieves and processes user queries:
     - **How to obtain**:
         - Register for an account on [Together AI](https://together.com/) and generate an API key from your account dashboard.
 
-5. **CACHE_DIR_ROOT_PATH**, **CACHE_DOC_RESPONSE_FILE_NAME**, **CACHE_QUERY_RESPONSE_FILE_NAME**: Configuration for caching responses.
+5. **HUGGINGFACE_TOKEN**: Token per accedere ai modelli Hugging Face (richiesto per ColPali).
+    - **Come ottenerlo**:
+        - Registrati su [Hugging Face](https://huggingface.co/) e vai alle [impostazioni del token](https://huggingface.co/settings/tokens)
+        - Crea un nuovo token con permessi di lettura
+        - **⚠️ IMPORTANTE**: Non inserire mai questo token direttamente nel Dockerfile o nel codice sorgente
+        - Usa sempre variabili d'ambiente: `export HUGGINGFACE_TOKEN=hf_your_token_here`
+
+6. **CACHE_DIR_ROOT_PATH**, **CACHE_DOC_RESPONSE_FILE_NAME**, **CACHE_QUERY_RESPONSE_FILE_NAME**: Configuration for caching responses.
     - **How to set**:
         - Specify the desired directory path and file names for caching responses as per your preference. You can leave the default values.
 
 
 ## Future Improvements
-- **Security Issue in Dockerfile**  
-  In the `Dockerfile` located in **colpali-deployments/vertex-deployment/**, a Huggingface token has been hardcoded. This token appears to be unnecessary and is likely only required to confirm acceptance of the terms of service for PaliGEMMA. It was hardcoded as a quick solution to avoid creating yet another token among the many already needed. This is a temporary measure and should be addressed before moving to production.
+- **✅ Security Issue in Dockerfile - RISOLTO**  
+  Il problema del token Hugging Face hardcoded nel `Dockerfile` in **colpali-deployments/vertex-deployment/** è stato risolto. Ora i token devono essere passati come variabili d'ambiente seguendo le best practices di sicurezza documentate nella sezione di installazione.
 
 - **Image Resizing and Compression**  
   Optimize image resizing and compression during embedding creation and front-back communication to enhance performance and reduce resource usage.
@@ -184,7 +224,43 @@ This phase retrieves and processes user queries:
 - **Vespa Authentication via Certificate File**  
   Fix the authentication process to Vespa using certificate files to ensure secure and reliable connections.
 
+## Citations and References
 
+This project builds upon the groundbreaking research presented in the ColPali paper. Please cite the original work when using this system:
+
+### Primary Citation
+
+```bibtex
+@misc{faysse2024colpaliefficientdocumentretrieval,
+    title={ColPali: Efficient Document Retrieval with Vision Language Models}, 
+    author={Manuel Faysse and Hugues Sibille and Tony Wu and Bilel Omrani and Gautier Viaud and Céline Hudelot and Pierre Colombo},
+    year={2024},
+    eprint={2407.01449},
+    archivePrefix={arXiv},
+    primaryClass={cs.IR},
+    url={https://arxiv.org/abs/2407.01449},
+    note={Accepted at ICLR 2025}
+}
+```
+
+### Key References
+
+- **ColPali Paper**: [arXiv:2407.01449](https://arxiv.org/abs/2407.01449)
+- **ColPali Models**: [Hugging Face - vidore/colpali](https://huggingface.co/vidore/colpali)
+- **ViDoRe Benchmark**: [Hugging Face Leaderboard](https://huggingface.co/spaces/vidore/vidore-leaderboard)
+- **PaliGemma Model**: [google/paligemma-3b-mix-448](https://huggingface.co/google/paligemma-3b-mix-448)
+- **ColBERT Architecture**: [Neural Information Retrieval](https://github.com/stanford-futuredata/ColBERT)
+
+### Related Work
+
+- Khattab, O., & Zaharia, M. (2020). ColBERT: Efficient and effective passage search via contextualized late interaction over BERT. *SIGIR*.
+- Bevilacqua, M., et al. (2024). PaliGemma: A versatile 3B VLM for transfer. *arXiv preprint*.
+
+### Acknowledgments
+
+Special thanks to the research teams at CentraleSupélec, Illuin Technology, Equall.ai, and ETH Zürich for their pioneering work on vision-based document retrieval.
+
+---
 
 *This README was generated to provide a comprehensive overview of the Colpali Workbench system, its components, and guidelines for setup and contribution. For detailed instructions on each component, please refer to their respective README files.*
 
