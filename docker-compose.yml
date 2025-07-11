@@ -1,0 +1,43 @@
+services:
+  frontend:
+    build:
+      context: ./colpali-ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80" 
+    depends_on:
+      - backend
+    networks:
+      - colpali-network
+
+  backend:
+    build:
+      context: ./colpali-api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - VERTEX_ENDPOINT_ID=308764855312056320
+      - VERTEX_PROJECT_ID=syllotips-development
+      - VERTEX_LOCATION=europe-west1
+      - VESPA_TENANT_NAME=syllotips
+      # - VESPA_ENDPOINT= # if null, a Vespa applicaton will be created.
+      - VESPA_APP_NAME=syllo-colpali
+      - VESPA_APP_PACKAGE_NAME=syllocolpalipackage
+      - VESPA_KEY_FILENAME=app/vespa/api_key.pem
+      - VESPA_CLOUD_TOKEN=vespa_cloud_SeCW347xmEBwJIiROcWlOBivmwP5nS0fwKiq4pN3KY5
+      - TOGETHER_API_KEY=d13f5947bc7dee088faed1890c2bc7b9b131e68ff9148fac3f03312ebf064a33
+      - PDF_GBUCKET_NAME=syllo-colpali
+      - GOOGLE_APPLICATION_CREDENTIALS=app/gcloud/gapp_credentials.json
+      - CACHE_DIR_ROOT_PATH=response_cache
+      - CACHE_DOC_RESPONSE_FILE_NAME=doc_last_response.json
+      - CACHE_QUERY_RESPONSE_FILE_NAME=query_last_response.json
+    volumes:
+      - ./keys/api_key.pem:/app/app/vespa/api_key.pem
+      - ./keys/gcloud-service-account.json:/app/app/gcloud/gapp_credentials.json
+    networks:
+      - colpali-network
+
+networks:
+  colpali-network:
+    driver: bridge
